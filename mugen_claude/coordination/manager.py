@@ -60,6 +60,18 @@ class AgentStatus:
             "error": self.error,
         }
 
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'AgentStatus':
+        return cls(
+            agent_id=data["agent_id"],
+            agent_type=data["agent_type"],
+            status=data["status"],
+            current_task=data.get("current_task"),
+            started_at=datetime.fromisoformat(data["started_at"]) if data.get("started_at") else None,
+            completed_at=datetime.fromisoformat(data["completed_at"]) if data.get("completed_at") else None,
+            error=data.get("error"),
+        )
+
 
 class CoordinationManager:
     """
