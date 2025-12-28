@@ -41,6 +41,10 @@ When exploring:
 
 Always respond with structured, actionable information that helps other agents make informed decisions."""
 
+    def get_allowed_tools(self) -> str:
+        """Explorer agents can read and search, but not modify files."""
+        return "Read,Glob,Grep"
+
     async def process_task(self, task: Dict[str, Any]) -> Dict[str, Any]:
         """
         Process an exploration task.

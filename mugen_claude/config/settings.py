@@ -8,10 +8,9 @@ from typing import Optional
 class Settings(BaseSettings):
     """Application settings."""
 
-    # API Configuration
-    anthropic_api_key: str
-    model: str = "claude-sonnet-4-5-20250929"
-    max_tokens: int = 4096
+    # Claude CLI Configuration
+    model: str = "sonnet"  # Can be "sonnet", "opus", or "haiku"
+    max_tokens: int = 4096  # Not used by CLI, for reference only
 
     # Agent Configuration
     agent_timeout: float = 120.0

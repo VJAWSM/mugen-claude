@@ -2,11 +2,11 @@
 Base agent class for all agent processes.
 """
 import asyncio
-import os
+import json
+import subprocess
 from abc import ABC, abstractmethod
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
-from anthropic import Anthropic
 
 from ..coordination import CoordinationManager, AgentMessage
 
@@ -15,6 +15,7 @@ class BaseAgent(ABC):
     """
     Base class for all agent processes.
     Each agent runs in its own process and communicates via the coordination manager.
+    Uses the `claude` CLI command for Claude API interaction.
     """
 
     def __init__(
@@ -22,7 +23,6 @@ class BaseAgent(ABC):
         agent_id: str,
         agent_type: str,
         coordination_manager: CoordinationManager,
-        api_key: Optional[str] = None,
     ):
         """
         Initialize the base agent.
@@ -31,18 +31,11 @@ class BaseAgent(ABC):
             agent_id: Unique identifier for this agent instance
             agent_type: Type of agent (explorer, planner, executor, etc.)
             coordination_manager: Shared coordination manager
-            api_key: Anthropic API key (uses ANTHROPIC_API_KEY env var if not provided)
         """
         self.agent_id = agent_id
         self.agent_type = agent_type
         self.coordination = coordination_manager
         self.running = False
-
-        # Initialize Claude client
-        api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
-        if not api_key:
-            raise ValueError("ANTHROPIC_API_KEY not found in environment")
-        self.client = Anthropic(api_key=api_key)
 
         # Conversation history for this agent
         self.conversation_history = []
@@ -55,6 +48,14 @@ class BaseAgent(ABC):
         """
         Get the system prompt for this agent type.
         Each agent type should define its own specialized prompt.
+        """
+        pass
+
+    @abstractmethod
+    def get_allowed_tools(self) -> str:
+        """
+        Get comma-separated list of tools this agent can use.
+        Examples: "Read,Glob,Grep" or "Read,Write,Edit,Bash"
         """
         pass
 
@@ -72,13 +73,43 @@ class BaseAgent(ABC):
         """
         pass
 
+    def _format_conversation(self) -> str:
+        """
+        Format conversation history as a single prompt string.
+
+        Returns:
+            Formatted conversation string
+        """
+        if not self.conversation_history:
+            return ""
+
+        # Format previous conversation
+        parts = []
+        for msg in self.conversation_history[:-1]:  # All but the last message
+            role = msg['role'].title()
+            content = msg['content']
+            parts.append(f"{role}: {content}")
+
+        # Add current message
+        if self.conversation_history:
+            current = self.conversation_history[-1]
+            if parts:
+                conversation_context = "\n\n".join(parts)
+                prompt = f"Previous conversation:\n{conversation_context}\n\nCurrent question:\n{current['content']}"
+            else:
+                prompt = current['content']
+        else:
+            prompt = ""
+
+        return prompt
+
     async def query_claude(self, user_message: str, max_tokens: int = 4096) -> str:
         """
-        Send a query to Claude and get a response.
+        Send a query to Claude via CLI and get a response.
 
         Args:
             user_message: The user message to send
-            max_tokens: Maximum tokens in response
+            max_tokens: Maximum tokens in response (not used with CLI, for compatibility)
 
         Returns:
             Claude's response text
@@ -89,19 +120,52 @@ class BaseAgent(ABC):
             "content": user_message
         })
 
-        # Call Claude API
-        response = self.client.messages.create(
-            model="claude-sonnet-4-5-20250929",
-            max_tokens=max_tokens,
-            system=self.get_system_prompt(),
-            messages=self.conversation_history
-        )
+        # Format conversation as prompt
+        prompt = self._format_conversation()
 
-        # Extract response text
-        response_text = ""
-        for block in response.content:
-            if hasattr(block, 'text'):
-                response_text += block.text
+        # Build claude CLI command
+        cmd = [
+            'claude',
+            '--print',
+            '--output-format', 'json',
+            '--system-prompt', self.get_system_prompt(),
+            '--tools', self.get_allowed_tools(),
+            '--no-session-persistence',
+            '--model', 'sonnet',
+            prompt
+        ]
+
+        # Execute claude command
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=120  # 2 minute timeout
+            )
+
+            # Parse JSON response
+            response_data = json.loads(result.stdout)
+
+            # Check for errors
+            if response_data.get('is_error'):
+                error_msg = response_data.get('result', 'Unknown error')
+                raise Exception(f"Claude error: {error_msg}")
+
+            # Extract response text
+            response_text = response_data.get('result', '')
+
+            # Log usage (optional)
+            cost = response_data.get('total_cost_usd', 0)
+            duration = response_data.get('duration_ms', 0)
+            print(f"[{self.agent_id}] Query completed - Cost: ${cost:.4f}, Duration: {duration}ms")
+
+        except subprocess.TimeoutExpired:
+            raise Exception("Claude command timed out after 120 seconds")
+        except json.JSONDecodeError as e:
+            raise Exception(f"Failed to parse Claude response: {e}\nOutput: {result.stdout[:500]}")
+        except Exception as e:
+            raise Exception(f"Error calling Claude CLI: {e}")
 
         # Add assistant response to history
         self.conversation_history.append({

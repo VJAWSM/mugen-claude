@@ -1,8 +1,10 @@
 # Mugen Claude
 
-**Autonomous multi-agent orchestration system for Claude Code**
+**Autonomous multi-agent orchestration system using Claude Code CLI**
 
 Mugen Claude is an experimental framework that enables Claude to run autonomously by spawning and coordinating multiple specialized agent processes. The system implements a multi-agent architecture where agents can communicate, collaborate, and coordinate their work to solve complex problems.
+
+**Uses the `claude` CLI command** - No API keys needed! Leverages your existing Claude Code setup for all Claude interactions.
 
 ## Architecture
 
@@ -34,13 +36,16 @@ Mugen Claude is an experimental framework that enables Claude to run autonomousl
 
 ## Key Features
 
+- **Claude CLI Integration**: Uses `claude` command via subprocess - no API key management needed!
 - **True Multi-Processing**: Agents run as separate OS processes using Python's multiprocessing
 - **Agent-to-Agent Communication**: Built-in message passing system for inter-agent coordination
 - **File Locking**: OS-level file locking prevents write conflicts between parallel agents
 - **Shared State Management**: Centralized coordination manager using multiprocessing.Manager
+- **Tool Control**: Each agent type has specific tools enabled (Read/Write/Edit/Bash/Glob/Grep)
 - **Specialized Agents**: Pre-defined agent types (Explorer, Planner, Executor) with extensibility
 - **User Steering**: Interactive mode allows users to guide the orchestration process
 - **Autonomous Workflow**: Complete explore → plan → execute workflow with minimal human intervention
+- **Cost Tracking**: Automatic logging of Claude API costs and response times per agent
 
 ## Agent Types
 
@@ -60,6 +65,21 @@ Mugen Claude is an experimental framework that enables Claude to run autonomousl
 
 ## Installation
 
+### Prerequisites
+
+1. **Claude Code CLI** must be installed and configured:
+   ```bash
+   # Check if claude CLI is available
+   which claude
+
+   # If not installed, get it from:
+   # https://claude.ai/claude-code
+   ```
+
+2. **Python 3.9+** required
+
+### Install Mugen Claude
+
 ```bash
 # Clone the repository
 git clone https://github.com/VJAWSM/mugen-claude.git
@@ -70,10 +90,9 @@ pip install -e .
 
 # Or install from requirements.txt
 pip install -r requirements.txt
-
-# Set your Anthropic API key
-export ANTHROPIC_API_KEY=your-api-key-here
 ```
+
+**No API keys needed!** The system uses your existing Claude Code CLI authentication.
 
 ## Usage
 
@@ -227,14 +246,13 @@ process.join()
 ### Environment Variables
 
 ```bash
-# Required
-ANTHROPIC_API_KEY=your-api-key
-
-# Optional
+# Optional Configuration
 MUGEN_LOG_LEVEL=INFO
 MUGEN_MAX_AGENTS=5
 MUGEN_TIMEOUT=120
 ```
+
+**Note:** No API key configuration needed - the system uses the `claude` CLI command which handles authentication automatically.
 
 ### Agent Definitions
 

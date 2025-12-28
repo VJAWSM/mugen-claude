@@ -1,11 +1,5 @@
-# Claude Agent SDK (not yet publicly available - placeholder)
-# claude-agent-sdk>=0.1.0
-
-# For now, we'll use the Anthropic SDK directly
-anthropic>=0.40.0
-
-# Async support
-asyncio-mqtt>=0.16.0
+# Mugen Claude Dependencies
+# Uses the `claude` CLI command for Claude API interaction (no SDK needed)
 
 # Process management
 psutil>=5.9.0

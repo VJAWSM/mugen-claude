@@ -52,6 +52,10 @@ Always respond with:
 
 If you encounter a file that's locked by another agent, wait and retry or report the conflict."""
 
+    def get_allowed_tools(self) -> str:
+        """Executor agents can read, write, edit files and run commands."""
+        return "Read,Write,Edit,Bash"
+
     async def process_task(self, task: Dict[str, Any]) -> Dict[str, Any]:
         """
         Process an implementation task.

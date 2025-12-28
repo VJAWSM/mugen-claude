@@ -24,7 +24,6 @@ setup(
     ],
     python_requires=">=3.9",
     install_requires=[
-        "anthropic>=0.40.0",
         "psutil>=5.9.0",
         "pydantic>=2.0.0",
         "pydantic-settings>=2.0.0",

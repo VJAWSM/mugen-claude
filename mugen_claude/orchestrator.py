@@ -22,13 +22,13 @@ from .agents import ExplorerAgent, PlannerAgent, ExecutorAgent
 console = Console()
 
 
-def agent_process_wrapper(agent_class, agent_id, agent_type, coordination_manager, api_key):
+def agent_process_wrapper(agent_class, agent_id, agent_type, coordination_manager):
     """
     Wrapper function to run an agent in a separate process.
     This is needed because multiprocessing requires a top-level function.
     """
     try:
-        agent = agent_class(agent_id, agent_type, coordination_manager, api_key)
+        agent = agent_class(agent_id, agent_type, coordination_manager)
         asyncio.run(agent.run())
     except KeyboardInterrupt:
         print(f"[{agent_id}] Interrupted")
@@ -44,12 +44,8 @@ class Orchestrator:
     Handles user input and manages the overall workflow.
     """
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self):
         """Initialize the orchestrator."""
-        self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
-        if not self.api_key:
-            raise ValueError("ANTHROPIC_API_KEY not found in environment")
-
         self.coordination = CoordinationManager()
         self.processes: Dict[str, mp.Process] = {}
         self.agent_counter = 0
@@ -71,7 +67,7 @@ class Orchestrator:
 
         process = mp.Process(
             target=agent_process_wrapper,
-            args=(agent_class, agent_id, agent_type, self.coordination, self.api_key)
+            args=(agent_class, agent_id, agent_type, self.coordination)
         )
         process.start()
 
@@ -334,11 +330,12 @@ class Orchestrator:
 
 def main():
     """Main entry point."""
-    # Check for API key
-    if not os.getenv("ANTHROPIC_API_KEY"):
-        console.print("[red]Error: ANTHROPIC_API_KEY environment variable not set[/red]")
-        console.print("Please set it before running:")
-        console.print("  export ANTHROPIC_API_KEY=your-api-key")
+    # Check that claude CLI is available
+    import shutil
+    if not shutil.which("claude"):
+        console.print("[red]Error: 'claude' command not found in PATH[/red]")
+        console.print("Please ensure Claude Code CLI is installed:")
+        console.print("  https://claude.ai/claude-code")
         sys.exit(1)
 
     orchestrator = Orchestrator()

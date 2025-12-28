@@ -57,6 +57,10 @@ Plan structure should include:
 4. Risk assessment
 5. Validation strategy"""
 
+    def get_allowed_tools(self) -> str:
+        """Planner agents only need to read files, not modify them."""
+        return "Read"
+
     async def process_task(self, task: Dict[str, Any]) -> Dict[str, Any]:
         """
         Process a planning task.
