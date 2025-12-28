@@ -1,0 +1,22 @@
+# Claude Agent SDK (not yet publicly available - placeholder)
+# claude-agent-sdk>=0.1.0
+
+# For now, we'll use the Anthropic SDK directly
+anthropic>=0.40.0
+
+# Async support
+asyncio-mqtt>=0.16.0
+
+# Process management
+psutil>=5.9.0
+
+# Configuration
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# CLI and UI
+rich>=13.0.0
+prompt-toolkit>=3.0.0
+
+# Utilities
+python-dotenv>=1.0.0
