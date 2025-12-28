@@ -135,17 +135,36 @@ class BaseAgent(ABC):
             prompt
         ]
 
-        # Execute claude command
+        # Execute claude command (async subprocess)
         try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=120  # 2 minute timeout
+            print(f"[{self.agent_id}] Calling Claude CLI...")
+
+            # Run subprocess asynchronously
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
             )
 
+            # Wait for completion with timeout
+            try:
+                stdout, stderr = await asyncio.wait_for(
+                    process.communicate(),
+                    timeout=120.0
+                )
+            except asyncio.TimeoutError:
+                process.kill()
+                raise Exception("Claude command timed out after 120 seconds")
+
+            stdout_text = stdout.decode('utf-8')
+            stderr_text = stderr.decode('utf-8')
+
+            if process.returncode != 0:
+                print(f"[{self.agent_id}] Claude CLI error: {stderr_text}")
+                raise Exception(f"Claude CLI exited with code {process.returncode}: {stderr_text}")
+
             # Parse JSON response
-            response_data = json.loads(result.stdout)
+            response_data = json.loads(stdout_text)
 
             # Check for errors
             if response_data.get('is_error'):
@@ -160,10 +179,8 @@ class BaseAgent(ABC):
             duration = response_data.get('duration_ms', 0)
             print(f"[{self.agent_id}] Query completed - Cost: ${cost:.4f}, Duration: {duration}ms")
 
-        except subprocess.TimeoutExpired:
-            raise Exception("Claude command timed out after 120 seconds")
         except json.JSONDecodeError as e:
-            raise Exception(f"Failed to parse Claude response: {e}\nOutput: {result.stdout[:500]}")
+            raise Exception(f"Failed to parse Claude response: {e}\nOutput: {stdout_text[:500]}")
         except Exception as e:
             raise Exception(f"Error calling Claude CLI: {e}")
 

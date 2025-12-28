@@ -148,7 +148,7 @@ class Orchestrator:
         }
         self.send_task_to_agent(explorer_id, exploration_task)
 
-        exploration_result = await self.wait_for_result(explorer_id, timeout=60)
+        exploration_result = await self.wait_for_result(explorer_id, timeout=180)
         if not exploration_result:
             console.print("[red]Exploration failed[/red]")
             return
